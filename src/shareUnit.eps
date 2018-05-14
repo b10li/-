@@ -1,0 +1,94 @@
+/*--------------------------------------------------
+0. 클릭 인식-> 유닛주기
+팀 유닛일 경우,
+ i) 공격유닛이면, 20x20칸 범위 내 같은종류의 유닛을 모두 준다.(물론 자기 팀껏만)
+ ii)수송, 일꾼이면, 그거 하나만 준다. 
+recognize mouse selection & give unit
+
+----------------------------------------------------*/
+import shareTeam;
+// 필수 로케이션
+const locationDot = $L("Location A");
+
+
+function GetSelectedUnitEPD(playerID) 
+{
+	// 선택한 유닛의 오프셋
+	const unitPtr, unitEpd = dwepdread_epd_safe(EPD(0x6284E8) + 12* playerID);
+
+	if (unitPtr != 0)
+		return unitEpd;
+	else 
+		return -1;
+}
+
+function SetLocationXY(posX, posY, locationNum, size) 
+{// 로케이션을 해당xy로 옮김
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 0, SetTo, posX - size);
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 1, SetTo, posY - size);
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 2, SetTo, posX + size);
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 3, SetTo, posY + size);
+}
+
+function isUnit(unitType)
+{
+	if(	unitType < 104 
+		&& unitType != 35 // larva
+		&& unitType != 36 // egg
+		&& unitType != 59 // cocoon
+		&& unitType != 73 // intercepter
+		&& unitType != 85 // scarb
+		&& unitType != 97 // lurker egg
+		|| unitType == 107 // scan building
+		)
+	{
+		return 1;
+	}
+	else return 0;
+}
+
+function isNonBattleUnit(unitType)
+{
+	if(	unitType == 7	//scv
+		&& unitType == 11 //dropship
+		&& unitType == 41 //drone
+		&& unitType == 42 //overlord
+		&& unitType == 64 //probe
+		&& unitType == 69 //shuttle
+		&& unitType != 107
+		) 
+	{
+		return 1;
+	}
+	else return 0;
+}
+
+function GiveSelectedUnit(playerID)
+{
+	const unitEpd = GetSelectedUnitEPD(playerID);
+
+	if(unitEpd != -1)
+	{
+		const unitType = dwread_epd(unitEpd + 0x64 /4);
+		if(isUnit(unitType))
+		{
+			const teamID = shareTeam.TeamDivide[playerID];
+			const player = dwbreak(dwread_epd(unitEpd + 0x4C /4))[[2]];
+			// 클릭한 유닛이, 내 유닛이 아닌 팀 유닛이면
+			if((player != playerID) && shareTeam.IsTeammate(player, teamID))
+			{
+				const unitX, unitY = dwbreak(dwread_epd(unitEpd + 0x28 /4))[[0, 1]];
+				if(isNonBattleUnit(unitType))
+				{//battle unit = give multiple
+					SetLocationXY(unitX, unitY, locationDot, 32*20);
+					GiveUnits(All, unitType, player, locationDot+1, playerID);
+				}
+				else
+				{//transport, worker unit = give 1
+					SetLocationXY(unitX, unitY, locationDot, 0);
+					GiveUnits(1, unitType, player, locationDot+1, playerID);
+				}		
+			}
+		}
+	}
+}

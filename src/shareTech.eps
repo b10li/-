@@ -1,0 +1,50 @@
+/*--------------------------------------------------
+2. 업그레이드/ 테크 공유
+대표 플레이어에게서 값을 받아온다. 저장된 값과 다를경우
+팀원에게 적용
+get level from headplayer, and check it
+if it has difference, apply to teammates.
+----------------------------------------------------*/
+import shareTeam;
+
+const TECHNUMBER			= 35;
+const TeamTechCheck			= EUDArray(shareTeam.TeamNumber* TECHNUMBER);
+
+function GetCurrentTech(player, tech)
+{
+	const count = bread(0x58CF44 + tech + player * (24 - 4 * (tech / 24)) + 0x21FC * (tech / 24));
+	return count;
+}
+
+function SetCurrentTech(player, tech, count)
+{
+	bwrite(0x58CF44 + tech + player * (24 - 4 * (tech / 24)) + 0x21FC * (tech / 24), count);
+}
+
+
+function GetSharedTech(teamID, techNumber)
+{//Get P1, P4 tech(생산자가 업글하니까) 
+	const techVal = GetCurrentTech(teamID*shareTeam.TeamManNumber, techNumber);
+	return techVal;
+}
+
+function SetSharedTech(teamID)
+{
+	for(var j=1; j<shareTeam.TeamManNumber; j++)
+	{//p2~p3, p5~p6
+		for(var i=0; i<TECHNUMBER; i++)
+		{// 1~ end
+			//get previous level
+			const savedTechLevel = TeamTechCheck[i+ TECHNUMBER*teamID];
+			//get level from p1, p4
+			const teamTechLevel = GetSharedTech(teamID, i);
+			if(savedTechLevel != teamTechLevel)
+			{
+				// set
+				SetCurrentTech(teamID*shareTeam.TeamManNumber+j, i, teamTechLevel);
+				TeamTechCheck[i+ TECHNUMBER*teamID] = teamTechLevel;
+			}
+			
+		}
+	}
+}

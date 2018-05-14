@@ -1,0 +1,75 @@
+/* --------------------------------------------------
+3:3 기준 
+현재 P1~3/ P4~6 이 각각 팀
+
+P1, P4는 User Select 으로)
+나머지는 아무종족
+
+기존 (밀리) 트리거를 삭제할 필요가 있음
+로케이션을 하나 생성 해야함 (선택인식)
+
+랜덤위치 트리거는 없음,
+만들 의향은 있지만 만들게 되면 사용방법이 더 복잡해짐
+
+v.151
+sheun_t_@naver.com
+--------------------------------------------------*/
+// 필수 로케이션
+const TeamNumber 			= 2; // 팀수
+const TeamManNumber			= 3; // 팀당 인원수 
+
+//const TUnitList			= 0 ~34, 58 
+//const ZUnitList			= 37~47, 62, 103
+//const PUnitList			= 60, 61, 	63~72 83~ 84
+
+// 팀 정보를 저장  
+const TeamInfoList			= EUDArray(TeamNumber);
+// 팀이 어떻게 나뉘었는지 저장하는 배열 (플레이어 위치에 팀 id가 저장됨)
+const TeamDivide			= [9,9,9,9, 9,9,9,9, 9,9,9,9];
+
+object TeamInfo
+{
+	var ore;
+	var gas;
+	var race; // 1 zerg, 2 terran, 3 protoss
+	var suppliesUsed;
+	var suppliesAvail;
+};
+
+function GetSharedTeam(teamID): TeamInfo
+{
+	return TeamInfoList[teamID];
+}
+
+function SetSharedTeam(teamID, newVal: TeamInfo)
+{
+	if(TeamInfoList[teamID])
+	{
+		TeamInfo.free(TeamInfoList[teamID]);
+	}
+	TeamInfoList[teamID] = newVal;
+}
+
+
+function IsTeammate(playerID, teamID)
+{
+	if(teamID == TeamDivide[playerID])
+		return 1;
+	else
+		return 0;	
+}
+
+function SetTeam(teamID, race)
+{
+	const team 			= TeamInfo.alloc();
+	for(var i=0; i<TeamManNumber; i++){
+		TeamDivide[teamID*TeamManNumber + i] = teamID; // P1~P3을 팀 (teamID)으로
+	}
+	team.ore 			= 0;
+	team.gas 			= 0;
+	team.race 			= race; // 1 zerg, 2 terran, 3 protoss
+	team.suppliesUsed 	= 0;
+	team.suppliesAvail	= 0;
+
+	SetSharedTeam(teamID, team);
+}

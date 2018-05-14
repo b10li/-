@@ -1,0 +1,133 @@
+/*--------------------------------------------------
+1. 자원/ 인구 공유 
+이전의 값에 변화율을 모두 더함 (현재값 - 과거값 = 변화율) 
+current - past = changed amount
+
+공유된 자원값 = 이전값 + P1 변화율 + P2 변화율 + ... + P5 변화율
+= P1 ~ P5 현재값 - P1 ~ P5 과거값+ 팀 과거값
+(공유시, 팀 과거값 == 과거값)
+share amount = past + all changed amount = past + all current - all past
+
+플레이어 수가 n 일때,
+공유된 자원량 = (n)현재값 - (n)과거값 + 과거값
+if player number is n,
+shared amount = current*n - past*n + past
+
+----------------------------------------------------*/
+import shareTeam;
+//z - t - p 인구 오프셋
+const ZSuppliesAvailable	= 0x582144;
+const ZSuppliesUsed			= 0x582174;
+
+const TSuppliesAvailable	= 0x5821D4;
+const TSuppliesUsed			= 0x582204;
+
+const PSuppliesAvailable	= 0x582264;
+const PSuppliesUsed			= 0x582294;
+
+function GetSupplies(playerID, race)
+{
+
+	var suppliesUsed = 0;
+	var suppliesAvail = 0;
+	if(race == 1)
+	{//zerg
+		suppliesUsed = dwread_epd(EPD(ZSuppliesUsed) + playerID);
+		suppliesAvail = dwread_epd(EPD(ZSuppliesAvailable) + playerID);
+	}
+	if(race == 2)
+	{//terran
+		suppliesUsed = dwread_epd(EPD(TSuppliesUsed) + playerID);
+		suppliesAvail = dwread_epd(EPD(TSuppliesAvailable) + playerID);
+	}
+	if(race == 3)
+	{//protoss
+		suppliesUsed = dwread_epd(EPD(PSuppliesUsed) + playerID);
+		suppliesAvail = dwread_epd(EPD(PSuppliesAvailable) + playerID);
+	}
+	return suppliesUsed, suppliesAvail;
+}
+
+
+function GetSharedSupplies(teamID)
+{// 인구 연동
+	const team = shareTeam.GetSharedTeam(teamID);
+
+	var totalSuppliesUsed = 0;
+	var totalsuppliesAvail = 0;
+	var playerNumber = 0;
+
+	EUDPlayerLoop()();
+	var p = getcurpl();
+	if(shareTeam.IsTeammate(p, teamID))
+	{
+		const u, m = GetSupplies(p, team.race);
+		totalSuppliesUsed += u;
+		totalsuppliesAvail  += m;
+		playerNumber++;
+	}
+	EUDEndPlayerLoop();
+
+	const pastSuppliesUsed = team.suppliesUsed;
+	const pastsuppliesAvail = team.suppliesAvail; 
+
+	const sharedSuppliesUsed = totalSuppliesUsed - (playerNumber -1) * pastSuppliesUsed;
+	const sharedsuppliesAvail = totalsuppliesAvail  - (playerNumber -1) * pastsuppliesAvail;
+	var b = 0;
+
+	return sharedSuppliesUsed, sharedsuppliesAvail;
+}
+
+function SetSupplies(playerID, race, suppliesUsed, suppliesAvail)
+{
+	if(race == 1)
+	{//zerg
+		SetMemoryEPD(EPD(ZSuppliesUsed) + playerID, SetTo, suppliesUsed);
+		SetMemoryEPD(EPD(ZSuppliesAvailable) + playerID, SetTo, suppliesAvail);
+	}
+	if(race == 2)
+	{//terran
+		SetMemoryEPD(EPD(TSuppliesUsed) + playerID, SetTo, suppliesUsed);
+		SetMemoryEPD(EPD(TSuppliesAvailable) + playerID, SetTo, suppliesAvail);
+	}
+	if(race == 3)
+	{//protoss
+		SetMemoryEPD(EPD(PSuppliesUsed) + playerID, SetTo, suppliesUsed);
+		SetMemoryEPD(EPD(PSuppliesAvailable) + playerID, SetTo, suppliesAvail);
+	}
+}
+
+
+function SetSharedSupplies(teamID)
+{
+	const team = shareTeam.GetSharedTeam(teamID);
+
+	const sharedSuppliesUsed, sharedsuppliesAvail = GetSharedSupplies(teamID);
+	//저장
+	team.suppliesUsed = sharedSuppliesUsed;
+	team.suppliesAvail = sharedsuppliesAvail;
+
+	EUDPlayerLoop()();
+	var p = getcurpl();
+	//force1
+	if(shareTeam.IsTeammate(p, teamID))
+	{
+		SetSupplies(p, team.race, sharedSuppliesUsed, sharedsuppliesAvail);
+	}
+	EUDEndPlayerLoop();
+}
+
+function IsDifferSupplies(playerID, teamID)
+{
+	//const teamID = TeamDivide[playerID];
+	const team = shareTeam.GetSharedTeam(teamID);
+
+	if(shareTeam.IsTeammate(playerID, teamID))
+	{
+		var pSuppliesUsed, pSuppliesAvail = GetSupplies(playerID, team.race);
+		if(team.suppliesUsed != pSuppliesUsed || team.suppliesAvail != pSuppliesAvail)
+		{
+			SetSharedSupplies(teamID);
+		}
+	}
+}

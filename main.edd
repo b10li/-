@@ -1,0 +1,6 @@
+[main]
+input:Test.scx
+output:Test_Out.scx
+
+[src\main.eps]
+[eudTurbo]
