@@ -23,6 +23,8 @@ P4, P5, P6 : Force2
 
 6. Drag & Drop main.edd to EudDraft.exe
 
+https://github.com/phu54321/euddraft
+
 7. Finished!
 
 'Test_Out.scx' is ur file
