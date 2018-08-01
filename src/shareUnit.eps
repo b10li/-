@@ -49,18 +49,18 @@ function isUnit(unitType)
 
 function isBattleUnit(unitType)
 {
-	if(	unitType == 7	//scv
-		&& unitType == 11 //dropship
-		&& unitType == 41 //drone
-		&& unitType == 42 //overlord
-		&& unitType == 64 //probe
-		&& unitType == 69 //shuttle
+	if(	unitType != 7	//scv
+		&& unitType != 11 //dropship
+		&& unitType != 41 //drone
+		&& unitType != 42 //overlord
+		&& unitType != 64 //probe
+		&& unitType != 69 //shuttle
 		&& unitType != 107
 		) 
 	{
-		return 0;
+		return 1;
 	}
-	else return 1;
+	else return 0;
 }
 
 function GiveSelectedUnit(playerID)
