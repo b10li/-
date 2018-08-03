@@ -32,18 +32,17 @@ function GetSharedResource(teamID)
 	var totalGas = 0;
 	var playerNumber = 0;
 
-	EUDPlayerLoop()();
-	var p = getcurpl();
-
-	if(shareTeam.IsTeammate(p, teamID))
+	for(var p=0; p<6; p++)
 	{
-		const o, g = GetResource(p);
-		totalOre = o + totalOre;
-		totalGas = g + totalGas;
-		playerNumber++;
+		if(!playerexist(p)) continue;
+		if(shareTeam.IsTeammate(p, teamID))
+		{
+			const o, g = GetResource(p);
+			totalOre = o + totalOre;
+			totalGas = g + totalGas;
+			playerNumber++;
+		}
 	}
-	EUDEndPlayerLoop();
-
 	const pastOre = team.ore;
 	const pastGas = team.gas; 
 
@@ -62,15 +61,15 @@ function SetSharedResource(teamID)
 	team.ore = sharedOre;
 	team.gas = sharedGas;
 
-	EUDPlayerLoop()();
-	var p = getcurpl();
-	//force1
-	if(shareTeam.IsTeammate(p, teamID))
+	for(var p=0; p<6; p++)
 	{
-		SetResources(p, SetTo, sharedOre, Ore);
-		SetResources(p, SetTo, sharedGas, Gas);
+		if(!playerexist(p)) continue;
+		if(shareTeam.IsTeammate(p, teamID))
+		{
+			SetResources(p, SetTo, sharedOre, Ore);
+			SetResources(p, SetTo, sharedGas, Gas);
+		}
 	}
-	EUDEndPlayerLoop();
 }
 function IsDifferResource(playerID, teamID)
 {
@@ -84,6 +83,5 @@ function IsDifferResource(playerID, teamID)
 		{
 			SetSharedResource(teamID);
 		}
-		
 	}
 }

@@ -57,16 +57,17 @@ function GetSharedSupplies(teamID)
 	var totalsuppliesAvail = 0;
 	var playerNumber = 0;
 
-	EUDPlayerLoop()();
-	var p = getcurpl();
-	if(shareTeam.IsTeammate(p, teamID))
+	for(var p=0; p<6; p++)
 	{
-		const u, m = GetSupplies(p, team.race);
-		totalSuppliesUsed += u;
-		totalsuppliesAvail  += m;
-		playerNumber++;
+		if(!playerexist(p)) continue;
+		if(shareTeam.IsTeammate(p, teamID))
+		{
+			const u, m = GetSupplies(p, team.race);
+			totalSuppliesUsed += u;
+			totalsuppliesAvail  += m;
+			playerNumber++;
+		}
 	}
-	EUDEndPlayerLoop();
 
 	const pastSuppliesUsed = team.suppliesUsed;
 	const pastsuppliesAvail = team.suppliesAvail; 
@@ -107,14 +108,14 @@ function SetSharedSupplies(teamID)
 	team.suppliesUsed = sharedSuppliesUsed;
 	team.suppliesAvail = sharedsuppliesAvail;
 
-	EUDPlayerLoop()();
-	var p = getcurpl();
-	//force1
-	if(shareTeam.IsTeammate(p, teamID))
+	for(var p=0; p<6; p++)
 	{
-		SetSupplies(p, team.race, sharedSuppliesUsed, sharedsuppliesAvail);
+		if(!playerexist(p)) continue;
+		if(shareTeam.IsTeammate(p, teamID))
+		{
+			SetSupplies(p, team.race, sharedSuppliesUsed, sharedsuppliesAvail);
+		}
 	}
-	EUDEndPlayerLoop();
 }
 
 function IsDifferSupplies(playerID, teamID)

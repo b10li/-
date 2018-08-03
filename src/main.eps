@@ -22,6 +22,91 @@ import shareUpgrade;
 import shareUnit;
 import shareTech;
 
+
+const UnitID_DeathCounter1	= 205; //leftdoor
+const UnitID_DeathCounter2	= 206; //door
+
+function DeathCount();
+function meleeTrigger(teamID);
+function ShowText();
+function CloakLoop();
+
+function onPluginStart()
+{
+	//hero arbiter dat edit
+	SetMemory(0x661A78, SetTo, 65537);
+	SetMemory(0x661A7C, SetTo, 65537);
+	SetMemory(0x6629B8, SetTo, 131074);
+	SetMemory(0x66454C, SetTo, 768553010);
+	SetMemory(0x66A1CC, SetTo, 167772168);
+	SetMemory(0x66FAD8, SetTo, 89);
+	SetMemory(0x6CA4B4, SetTo, 33227258);
+		
+	ShowText();
+
+	// Set 팀 i을 x종족으로
+	for(var i=0; i<shareTeam.TeamNumber; i++)/**/
+	{
+		const teamHead = i*shareTeam.TeamManNumber;/**/
+		if(Command(teamHead, Exactly, 1, $U('Zerg Hatchery'))) shareTeam.SetTeam(i, 1);
+		if(Command(teamHead, Exactly, 1, $U('Terran Command Center'))) shareTeam.SetTeam(i, 2);
+		if(Command(teamHead, Exactly, 1, $U('Protoss Nexus'))) shareTeam.SetTeam(i, 3);
+
+	}
+}
+
+function beforeTriggerExec() 
+{
+	DeathCount();
+	
+	for(var iTeam=0; iTeam<shareTeam.TeamNumber; iTeam++) /**/
+	{//team 0~1
+		// 밀리 트리거
+		meleeTrigger(iTeam);
+		if(Deaths($P8, Exactly, 0, UnitID_DeathCounter1))
+		{// 1/24 sec
+			for(var i=0; i<shareTeam.TeamManNumber; i++) /**/ 
+			{//p1~6
+				const p = iTeam * shareTeam.TeamManNumber + i; /**/ 
+				if(!playerexist(p)) continue;
+
+				shareResource.IsDifferResource(p, iTeam);	// 팀간 자원공유
+				shareSupply.IsDifferSupplies(p, iTeam);		// 팀간 인구공유 
+				shareUnit.GiveSelectedUnit(p);				// 팀간 선택한 유닛주기
+			}
+			if(iTeam == shareTeam.TeamNumber - 1) SetDeaths($P8, SetTo, 2, UnitID_DeathCounter1);
+		}
+
+		if(Deaths($P8, Exactly, 24, UnitID_DeathCounter2))
+		{// 1 sec
+			shareUpgrade.SetSharedUpgrade(iTeam);	// 팀간 업글공유
+		}
+		if(Deaths($P8, Exactly, 0, UnitID_DeathCounter2))
+		{// 1 sec
+			shareTech.SetSharedTech(iTeam);			// 팀간 기술공유
+			if(iTeam == shareTeam.TeamNumber - 1) SetDeaths($P8, SetTo, 48, UnitID_DeathCounter2);
+		}
+	}
+	CloakLoop();
+}
+
+function afterTriggerExec() 
+{
+	// eudturbo
+	SetMemory(0x6509A0, SetTo, 0);  
+}
+// main.eps -----------------------------------------------------------
+
+function DeathCount()
+{//timer
+	if(Deaths($P8, AtLeast, 1, UnitID_DeathCounter1))
+		SetDeaths($P8, Subtract, 1, UnitID_DeathCounter1);
+
+	if(Deaths($P8, AtLeast, 1, UnitID_DeathCounter2))
+		SetDeaths($P8, Subtract, 1, UnitID_DeathCounter2);
+
+}
+
 function meleeTrigger(teamID)
 {
 	const headPlayer = teamID*shareTeam.TeamManNumber;
@@ -34,84 +119,66 @@ function meleeTrigger(teamID)
 	// defeat, victory
 	if(Command(headPlayer, Exactly, 0, '(buildings)'))
 	{
+		setcurpl(headPlayer);
 		Defeat();
 	}
-
 }
 
 function ShowText()
 {
 	EUDPlayerLoop()();
-	SetMissionObjectives('\x0610li\x01: 자원, 인구, 업글, 테크 공유 적용됨');
+	SetMissionObjectives('자원, 인구, 업글, 테크 공유 적용됨\r\n유닛은 클릭을 통해 주고 받을 수 있음.');
 	EUDEndPlayerLoop();
 }
 
-// main.eps -----------------------------------------------------------
-const UnitID_DeathCounter1	= 205; //leftdoor
-const UnitID_DeathCounter2	= 206; //door
 
-function DeathCount()
-{//timer
-	if(Deaths($P8, AtLeast, 1, UnitID_DeathCounter1))
-		SetDeaths($P8, Subtract, 1, UnitID_DeathCounter1);
-
-	if(Deaths($P8, AtLeast, 1, UnitID_DeathCounter2))
-		SetDeaths($P8, Subtract, 1, UnitID_DeathCounter2);
-
+function SetLocationXY(posX, posY, locationNum, size) 
+{// 로케이션을 해당xy로 옮김
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 0, SetTo, posX - size);
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 1, SetTo, posY - size);
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 2, SetTo, posX + size);
+	SetMemoryEPD(EPD(0x58DC60) + locationNum * 5 + 3, SetTo, posY + size);
 }
 
-function onPluginStart()
+function CreateNKill(player)
 {
-	ShowText();
-	
-	// define 팀 i을 x종족으로
-	for(var i=0; i<shareTeam.TeamNumber; i++)
-	{
-		const teamHead = i*shareTeam.TeamManNumber;
-		if(Command(teamHead, Exactly, 1, $U('Zerg Hatchery'))){
-			shareTeam.SetTeam(i, 1);
-		}
-		if(Command(teamHead, Exactly, 1, $U('Terran Command Center'))){
-			shareTeam.SetTeam(i, 2);
-		}
-		if(Command(teamHead, Exactly, 1, $U('Protoss Nexus'))){
-			shareTeam.SetTeam(i, 3);
-		}
-	}
+	const nextCunit = epdread_epd(EPD(0x628438));
+	CreateUnitWithProperties(1, 86, $L("Location A")+1, player, UnitProperty(invincible=true));
+	SetMemoryEPD(nextCunit + 0xDC/4, Add, 0xA00000);
+	dwwrite_epd(nextCunit + 0x110/4, 2);
 }
 
-function beforeTriggerExec() 
-{
-	DeathCount();
-	for(var iTeam=0; iTeam<shareTeam.TeamNumber; iTeam++)
-	{//team 0~1
-		// 밀리 트리거
-		meleeTrigger(iTeam);
-		if(Deaths($P8, Exactly, 0, UnitID_DeathCounter1))
-		{// 1/24 sec
-			for(var p=0; p<6; p++)
-			{//p1~6
-				if(playerexist(p))
-				{
-					shareResource.IsDifferResource(p, iTeam);	// 팀간 자원공유
-					shareSupply.IsDifferSupplies(p, iTeam);	// 팀간 인구공유 
-					shareUnit.GiveSelectedUnit(p);		// 팀간 선택한 유닛주기
-				}
-			}
-			SetDeaths($P8, SetTo, 2, UnitID_DeathCounter1);
-		}
-
-		if(Deaths($P8, Exactly, 0, UnitID_DeathCounter2))
-		{// 1 sec
-			shareTech.SetSharedTech(iTeam);			// 팀간 기술공유
-			shareUpgrade.SetSharedUpgrade(iTeam);		// 팀간 업글공유
-			SetDeaths($P8, SetTo, 48, UnitID_DeathCounter2);
-		}
-	}
+function CloakLoop() 
+{// 아비터가 팀 유닛도 클록킹하게 함. 
+    SetMemory(0x6509B0, SetTo, EPD(0x59CCA8) + 0x64/4);  // cp = unitType
+    EUDLoopN()(1700);
+    if(Deaths(CurrentPlayer, Exactly, 71, 0x0))  // unittype == arbiter
+    {
+    	// getplayer
+    	SetMemory(0x6509B0, Subtract, (0x64 - 0x4C)/4); // cp = order & player
+    	const playerId = dwbreak(dwread_cp(0))[[2]];
+    	// get unit xy
+        SetMemory(0x6509B0, Subtract, (0x4C - 0x28)/4); // cp = UnitXY
+        const CurrentX, CurrentY = dwbreak(dwread_cp(0))[[0, 1]];
+        SetLocationXY(CurrentX, CurrentY, $L("Location A"), 160);
+        // create unit
+        //----------------------------------------- This is Incompetitable
+        if(playerId == $P1 || playerId == $P2)
+        {
+        	CreateNKill($P1);
+        	CreateNKill($P2);
+        } else if(playerId == $P3 || playerId == $P4)
+        {
+        	CreateNKill($P3);
+        	CreateNKill($P4);
+        } else if(playerId == $P5 || playerId == $P6)
+        {
+        	CreateNKill($P5);
+        	CreateNKill($P6);
+        }
+    	SetMemory(0x6509B0, Add, (0x64 - 0x28)/4); // cp = unitType
+    }
+    SetMemory(0x6509B0, Add, 84); // next unit
+    EUDEndLoopN();
 }
 
-function afterTriggerExec() 
-{
-	// eudturbo
-	SetMemory(0x6509A0, SetTo, 0);  
-}

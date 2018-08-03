@@ -39,7 +39,12 @@ function isUnit(unitType)
 		&& unitType != 73 // intercepter
 		&& unitType != 85 // scarb
 		&& unitType != 97 // lurker egg
+		&& unitType != 41 // drone
+		&& unitType != 7  // scv
+		&& unitType != 64 // probe
 		|| unitType == 107 // scan building
+		|| unitType == 108 // scan building
+		|| unitType == 125 // bunker
 		)
 	{
 		return 1;
@@ -49,13 +54,13 @@ function isUnit(unitType)
 
 function isBattleUnit(unitType)
 {
-	if(	unitType != 7	//scv
-		&& unitType != 11 //dropship
-		&& unitType != 41 //drone
+
+	if(unitType != 11 //dropship
 		&& unitType != 42 //overlord
-		&& unitType != 64 //probe
 		&& unitType != 69 //shuttle
 		&& unitType != 107
+		&& unitType != 108
+		&& unitType != 125
 		) 
 	{
 		return 1;
@@ -80,7 +85,7 @@ function GiveSelectedUnit(playerID)
 				const unitX, unitY = dwbreak(dwread_epd(unitEpd + 0x28 /4))[[0, 1]];
 				if(isBattleUnit(unitType))
 				{//battle unit = give multiple
-					SetLocationXY(unitX, unitY, locationDot, 32*20);
+					SetLocationXY(unitX, unitY, locationDot, 32*10);
 					GiveUnits(All, unitType, player, locationDot+1, playerID);
 				}
 				else
